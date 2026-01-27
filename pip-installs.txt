@@ -1,0 +1,3 @@
+waarschijnlijk niet helemaal compleet.
+
+pip install openmeteo-requests requests-cache retry-requests numpy pandas

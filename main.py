@@ -3,9 +3,12 @@ from PySide6.QtGui import QPixmap, QFont, QPainter, QColor
 from PySide6.QtCore import QRect, Qt
 import sys
 import numpy as np
+from openmeteohelper import OpenMeteoHelper
+
+om_helper = OpenMeteoHelper()
+om_helper.get_rain_data(52.5000, 52.5250, 6.08444, 6.10444, cells=4)
 
 # Weermodel
-
 def regen_kleur(waarde):
     if waarde <= 2:
         return QColor(255, 255, 255, 200)
@@ -25,7 +28,6 @@ regen[100:120, 30:50] = 0.5
 regen[90:100, 80:90] = 150.0
 
 # GUI
-
 app = QApplication(sys.argv)
 window = QMainWindow()
 window.setWindowTitle("Weermodel")
