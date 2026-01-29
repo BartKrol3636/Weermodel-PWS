@@ -1,40 +1,62 @@
 from PySide6.QtWidgets import (
-    QMainWindow, QLabel, QWidget,
+    QMainWindow, QLabel, QWidget, QComboBox,
     QVBoxLayout, QHBoxLayout, QPushButton
 )
 from PySide6.QtGui import QPixmap, QFont, QPainter, QColor
 from PySide6.QtCore import Qt
+from openmeteo_helper import OpenMeteoHelper, MapQuality, BoundingBox
+import numpy as np
+from enum import Enum
+
+class RainMode(Enum):
+    EIGEN = 0
+    KNMI = 1
 
 
 class WeermodelWindow(QMainWindow):
-    def __init__(self, rain_forecast_data, map_path="assets/zwolle_kaart.png"):
+    def __init__(self, bounding_box: BoundingBox, map_path="assets/zwolle_kaart.png"):
         super().__init__()
 
-        self.rain_forecast_data = rain_forecast_data
-        self.max_hours, self.height, self.width = rain_forecast_data.shape
+        self.bounding_box = bounding_box
+        self.map_quality = MapQuality.LOW
+        self.rain_mode = RainMode.KNMI
+
+        self.rain_forecast_data = np.zeros((1, 1, 1))
+        self.max_hours, self.height, self.width = self.rain_forecast_data.shape
         self.t = 0
 
+        self.get_rain()
+
         self.setWindowTitle("Weermodel")
-        self.setGeometry(25, 50, 750, 850)
-        self.setFixedSize(750, 850)
+        self.setFixedSize(1000, 880)
 
         self._setup_ui(map_path)
         self.draw_map()
 
     # ---------- UI ----------
+    # widget.setStyleSheet("background-color: red;")
 
     def _setup_ui(self, map_path):
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
 
-        layout = QVBoxLayout(central_widget)
+        main_layout = QHBoxLayout(central_widget)
 
+        left_widget = QWidget()
+        left_widget.setFixedSize(768, 854)
+        left_layout = QVBoxLayout(left_widget)
+
+        # Pixmap
         self.pixmap = QPixmap(map_path)
 
         self.pixmap_label = QLabel()
-        layout.addWidget(self.pixmap_label, 0, Qt.AlignmentFlag.AlignTop)
+        self.pixmap_label.setFixedSize(750, 750)
+        left_layout.addWidget(self.pixmap_label, 0, Qt.AlignmentFlag.AlignTop)
 
-        controls_layout = QHBoxLayout()
+        # Bottom Controls
+        bottom_controls_widget = QWidget()
+        bottom_controls_widget.setFixedSize(750, 75)
+        bottom_controls_layout = QHBoxLayout(bottom_controls_widget)
 
         self.btn_prev = QPushButton("<")
         self.btn_prev.setFixedSize(50, 50)
@@ -46,16 +68,48 @@ class WeermodelWindow(QMainWindow):
         self.btn_next = QPushButton(">")
         self.btn_next.setFixedSize(50, 50)
 
-        controls_layout.addWidget(self.btn_prev)
-        controls_layout.addWidget(self.label_text, 1)
-        controls_layout.addWidget(self.btn_next)
-
-        layout.addLayout(controls_layout)
+        bottom_controls_layout.addWidget(self.btn_prev)
+        bottom_controls_layout.addWidget(self.label_text, 1)
+        bottom_controls_layout.addWidget(self.btn_next)
 
         self.btn_prev.clicked.connect(self.prev_t)
         self.btn_next.clicked.connect(self.next_t)
 
+        left_layout.addWidget(bottom_controls_widget)
+
+        main_layout.addWidget(left_widget)
+
+        # Right Controls
+        right_controls_widget = QWidget()
+        right_controls_widget.setFixedSize(204, 854)
+        right_controls_layout = QVBoxLayout(right_controls_widget)
+
+        dropdown_label = QLabel("Regen Kwaliteit:")
+        right_controls_layout.addWidget(dropdown_label)
+        
+        quality_dropdown = QComboBox()
+        quality_dropdown.addItems([e.name for e in MapQuality])
+        quality_dropdown.currentIndexChanged.connect(self.on_quality_dropdown_change)
+        right_controls_layout.addWidget(quality_dropdown, 1, Qt.AlignmentFlag.AlignTop)
+
+        main_layout.addWidget(right_controls_widget, 1, Qt.AlignmentFlag.AlignRight)
+
     # ---------- Logic ----------
+
+    def change_rain_mode(self, mode: RainMode):
+        self.rain_mode = mode
+
+    def get_rain(self):
+        om_helper = OpenMeteoHelper()
+        rain_forecast_data = om_helper.get_rain_data(self.bounding_box, quality=self.map_quality, debug=False)
+        self.rain_forecast_data = rain_forecast_data
+        self.max_hours, self.height, self.width = rain_forecast_data.shape
+
+    def on_quality_dropdown_change(self, index):
+        print(f"Changing Quality to {list(MapQuality)[index].name}")
+        self.map_quality = list(MapQuality)[index]
+        self.get_rain()
+        self.draw_map()
 
     def get_rain_color(self, rain):
         gradient = [
@@ -111,7 +165,7 @@ class WeermodelWindow(QMainWindow):
 
         painter.end()
         self.pixmap_label.setPixmap(pixmap_overlay)
-        self.label_text.setText(f"tijdstap: {self.t}")
+        self.label_text.setText(f"Tijdstap: {self.t}")
 
     def prev_t(self):
         if self.t > 0:
@@ -125,21 +179,11 @@ class WeermodelWindow(QMainWindow):
 
 if __name__ == "__main__":
     from PySide6.QtWidgets import QApplication
-    import numpy as np
     import sys
 
-    method = 1
-
-    if method == 1:
-        rain_forecast_data = np.random.rand(24, 10, 10) * 10
-    if method == 2:
-        rain_forecast_data = np.zeros((48, 10, 10))
-        for t in range(24):
-            rain_forecast_data[t] = t * 2
-        for t in range(24):
-            rain_forecast_data[t + 24] = 48 + t * 6
+    bounding_box = BoundingBox(52.67122222, 52.35077778, 6.35519444, 5.82716667)
 
     app = QApplication(sys.argv)
-    window = WeermodelWindow(rain_forecast_data)
+    window = WeermodelWindow(bounding_box)
     window.show()
     sys.exit(app.exec())

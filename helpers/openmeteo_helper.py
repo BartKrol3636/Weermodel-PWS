@@ -4,11 +4,62 @@ import numpy as np
 import requests_cache
 from retry_requests import retry
 from time import sleep
+from dataclasses import dataclass
 
 class MapQuality(Enum):  # (cells_per_section, section_divisor, wait_time)
 	LOW = (10, 1, 0)
-	MEDIUM = (10, 3, 1)
-	HIGH = (10, 5, 3)
+	MEDIUM = (10, 3, 2)
+	HIGH = (10, 5, 4)
+
+@dataclass(frozen=True)
+class BoundingBox:
+	lat_min: float
+	lat_max: float
+	lon_min: float
+	lon_max: float
+
+	def __getitem__(self, idx):
+		return (self.lat_min, self.lat_max, self.lon_min, self.lon_max)[idx]
+
+	def zoom(self, factor: float) -> "BoundingBox":
+		if factor <= 0:
+			raise ValueError("zoom factor must be > 0")
+
+		lat_center = (self.lat_min + self.lat_max) / 2
+		lon_center = (self.lon_min + self.lon_max) / 2
+
+		lat_half = (self.lat_max - self.lat_min) / 2 * factor
+		lon_half = (self.lon_max - self.lon_min) / 2 * factor
+
+		return BoundingBox(
+			lat_center - lat_half,
+			lat_center + lat_half,
+			lon_center - lon_half,
+			lon_center + lon_half,
+		)
+
+class DebugCachedSession(requests_cache.CachedSession):
+	def __init__(self, *args, **kwargs):
+		super().__init__(*args, **kwargs)
+		self.section = None
+		self.used_cache = False
+
+	def set_section(self, i, j):
+		self.section = (i, j)
+		self.used_cache = False
+
+	def request(self, *args, **kwargs):
+		response = super().request(*args, **kwargs)
+
+		if hasattr(response, "from_cache"):
+			i, j = self.section if self.section else ("?", "?")
+			print(
+				f"{'Using cache' if response.from_cache else 'Requesting new data'} "
+				f"for section ({i}, {j})"
+			)
+			self.used_cache = response.from_cache
+
+		return response
 
 class OpenMeteoHelper:
 	def grid_to_coords(self, lat_min: float, lat_max: float, lon_min: float, lon_max: float, cells: int):
@@ -23,15 +74,15 @@ class OpenMeteoHelper:
 
 		return latitudes, longitudes
 
-	def get_rain_data(self, lat_min: float, lat_max: float, lon_min: float, lon_max: float, quality: MapQuality, debug: bool = False):
+	def get_rain_data(self, bounding_box: list[float, float, float, float], quality: MapQuality, debug: bool = False):
 		cells, divisor, wait_time = quality.value
 
-		cache_session = requests_cache.CachedSession(".cache", expire_after=3600)
+		cache_session = DebugCachedSession(".cache")
 		retry_session = retry(cache_session, retries=5, backoff_factor=0.2)
 		openmeteo = openmeteo_requests.Client(session=retry_session)
 
-		lat_sections = np.linspace(lat_min, lat_max, divisor + 1)
-		lon_sections = np.linspace(lon_min, lon_max, divisor + 1)
+		lat_sections = np.linspace(bounding_box[0], bounding_box[1], divisor + 1)
+		lon_sections = np.linspace(bounding_box[2], bounding_box[3], divisor + 1)
 
 		merged_rain = None
 
@@ -49,17 +100,19 @@ class OpenMeteoHelper:
 				coords = [(lat, lon) for lat in latitudes for lon in longitudes]
 
 				url = "https://api.open-meteo.com/v1/forecast"
+				# url = "https://historical-forecast-api.open-meteo.com/v1/forecast"
 				params = {
 					"latitude": [lat for lat, lon in coords],
 					"longitude": [lon for lat, lon in coords],
-					"hourly": "rain",
+					"hourly": "precipitation",
 					"models": "knmi_seamless",
-					"start_date": "2026-01-25",
-					"end_date": "2026-01-27",
+					"start_date": "2025-12-07",
+					"end_date": "2025-12-07",
 				}
 				
 				for k in range(0, 12):
 					try:
+						cache_session.set_section(i, j)
 						response = openmeteo.weather_api(url, params=params)
 						break
 					except openmeteo_requests.OpenMeteoRequestsError as e:
@@ -90,10 +143,10 @@ class OpenMeteoHelper:
 
 				if debug:
 					print(f"Section ({i},{j}) merged into indices x:{x_start}-{x_end}, y:{y_start}-{y_end}")
-
-					if wait_time > 0:
-						print(f'waiting {wait_time} seconds to avoid limiter')
-						sleep(wait_time)
+				
+				if wait_time > 0 and not cache_session.used_cache:
+					print(f'waiting {wait_time} seconds to avoid limiter')
+					sleep(wait_time)
 
 		if debug:
 			print("Merged rain shape (hours, lat, lon):", merged_rain.shape)
@@ -104,7 +157,7 @@ class OpenMeteoHelper:
 if __name__ == "__main__":
 	om_helper = OpenMeteoHelper()
 	merged_data = om_helper.get_rain_data(
-		52.67122222, 52.35077778, 6.35519444, 5.82716667,
+		BoundingBox(52.67122222, 52.35077778, 6.35519444, 5.82716667),
 		quality=MapQuality.MEDIUM,
 		debug=True
 	)
