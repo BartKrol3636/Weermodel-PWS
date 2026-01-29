@@ -4,13 +4,11 @@ import numpy as np
 import requests_cache
 from retry_requests import retry
 from time import sleep
-import ast
 
-class MapQuality(Enum):  # (cells_per_section, section_divisor)
-	LOW = (10, 1)
-	MEDIUM = (10, 3)
-	HIGH = (10, 5)
-	ULTRA = (10, 15)
+class MapQuality(Enum):  # (cells_per_section, section_divisor, wait_time)
+	LOW = (10, 1, 0)
+	MEDIUM = (10, 3, 1)
+	HIGH = (10, 5, 3)
 
 class OpenMeteoHelper:
 	def grid_to_coords(self, lat_min: float, lat_max: float, lon_min: float, lon_max: float, cells: int):
@@ -26,7 +24,7 @@ class OpenMeteoHelper:
 		return latitudes, longitudes
 
 	def get_rain_data(self, lat_min: float, lat_max: float, lon_min: float, lon_max: float, quality: MapQuality, debug: bool = False):
-		cells, divisor = quality.value
+		cells, divisor, wait_time = quality.value
 
 		cache_session = requests_cache.CachedSession(".cache", expire_after=3600)
 		retry_session = retry(cache_session, retries=5, backoff_factor=0.2)
@@ -50,14 +48,14 @@ class OpenMeteoHelper:
 
 				coords = [(lat, lon) for lat in latitudes for lon in longitudes]
 
-				url = "https://historical-forecast-api.open-meteo.com/v1/forecast"
+				url = "https://api.open-meteo.com/v1/forecast"
 				params = {
 					"latitude": [lat for lat, lon in coords],
 					"longitude": [lon for lat, lon in coords],
 					"hourly": "rain",
 					"models": "knmi_seamless",
-					"end_date": "2026-01-25",
-					"start_date": "2026-01-27",
+					"start_date": "2026-01-25",
+					"end_date": "2026-01-27",
 				}
 				
 				for k in range(0, 12):
@@ -66,9 +64,6 @@ class OpenMeteoHelper:
 						break
 					except openmeteo_requests.OpenMeteoRequestsError as e:
 						print(e)
-						msg = str(e)
-						data = ast.literal_eval(msg.split(": ", 1)[1])
-						x = data["reason"]
 						print(f'waiting 10 extra seconds ({k+1})')
 						sleep(10)
 
@@ -96,6 +91,10 @@ class OpenMeteoHelper:
 				if debug:
 					print(f"Section ({i},{j}) merged into indices x:{x_start}-{x_end}, y:{y_start}-{y_end}")
 
+					if wait_time > 0:
+						print(f'waiting {wait_time} seconds to avoid limiter')
+						sleep(wait_time)
+
 		if debug:
 			print("Merged rain shape (hours, lat, lon):", merged_rain.shape)
 
@@ -103,8 +102,8 @@ class OpenMeteoHelper:
 
 
 if __name__ == "__main__":
-	OMHelper = OpenMeteoHelper()
-	merged_data = OMHelper.get_rain_data(
+	om_helper = OpenMeteoHelper()
+	merged_data = om_helper.get_rain_data(
 		52.67122222, 52.35077778, 6.35519444, 5.82716667,
 		quality=MapQuality.MEDIUM,
 		debug=True

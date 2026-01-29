@@ -10,7 +10,7 @@ import numpy as np
 om_helper = OpenMeteoHelper()
 rain_forecast_data = om_helper.get_rain_data(
     52.67122222, 52.35077778, 6.35519444, 5.82716667,
-    quality=MapQuality.MEDIUM, debug=True
+    quality=MapQuality.HIGH, debug=True
 )
 
 # == GUI ==

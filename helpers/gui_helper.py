@@ -7,7 +7,7 @@ from PySide6.QtCore import Qt
 
 
 class WeermodelWindow(QMainWindow):
-    def __init__(self, rain_forecast_data, map_path="zwolle_kaart.png"):
+    def __init__(self, rain_forecast_data, map_path="assets/zwolle_kaart.png"):
         super().__init__()
 
         self.rain_forecast_data = rain_forecast_data
@@ -128,7 +128,7 @@ if __name__ == "__main__":
     import numpy as np
     import sys
 
-    method = 2
+    method = 1
 
     if method == 1:
         rain_forecast_data = np.random.rand(24, 10, 10) * 10

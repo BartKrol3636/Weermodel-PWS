@@ -1,0 +1,7 @@
+numpy==2.4.1
+openmeteo_requests==1.7.5
+pyside6==6.10.0
+pyside6_addons==6.10.0
+pyside6_essentials==6.10.0
+requests_cache==1.2.1
+retry_requests==2.0.0
