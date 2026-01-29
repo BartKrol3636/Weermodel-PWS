@@ -1,16 +1,16 @@
 from PySide6.QtWidgets import QApplication
-import sys
-from helpers.openmeteo_helper import OpenMeteoHelper, MapQuality, BoundingBox
+from helpers.openmeteo_helper import BoundingBox
 from helpers.gui_helper import WeermodelWindow
-import numpy as np
+import sys
 
+# === Belangrijke Info ===
 # zwolle_kaart.png coords: N: 52.67122222, E: 6.35519444, S: 52.35077778, W: 5.82716667
 
-# == OpenMeteo ==
+# ====== OpenMeteo ======
 bounding_box = BoundingBox(52.67122222, 52.35077778, 6.35519444, 5.82716667)
 
-# == GUI ==
+# ========= GUI =========
 app = QApplication(sys.argv)
-window = WeermodelWindow()
+window = WeermodelWindow(bounding_box)
 window.show()
 sys.exit(app.exec())

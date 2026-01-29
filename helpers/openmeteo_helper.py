@@ -6,10 +6,10 @@ from retry_requests import retry
 from time import sleep
 from dataclasses import dataclass
 
-class MapQuality(Enum):  # (cells_per_section, section_divisor, wait_time)
+class MapQuality(Enum): # (cells_per_section, section_divisor, wait_time)
 	LOW = (10, 1, 0)
-	MEDIUM = (10, 3, 2)
-	HIGH = (10, 5, 4)
+	MEDIUM = (10, 3, 1)
+	HIGH = (10, 5, 2)
 
 @dataclass(frozen=True)
 class BoundingBox:
@@ -74,7 +74,7 @@ class OpenMeteoHelper:
 
 		return latitudes, longitudes
 
-	def get_rain_data(self, bounding_box: list[float, float, float, float], quality: MapQuality, debug: bool = False):
+	def get_rain_data(self, bounding_box: BoundingBox, quality: MapQuality, debug: bool = False):
 		cells, divisor, wait_time = quality.value
 
 		cache_session = DebugCachedSession(".cache")
