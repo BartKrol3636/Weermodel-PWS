@@ -6,10 +6,12 @@ from retry_requests import retry
 from time import sleep
 from dataclasses import dataclass
 
-class MapQuality(Enum): # (cells_per_section, section_divisor, wait_time)
-	LOW = (10, 1, 0)
-	MEDIUM = (10, 3, 1)
-	HIGH = (10, 5, 2)
+class MapQuality(Enum): # (cells_per_section, section_divisor)
+	LOW = (10, 1)
+	MEDIUM = (10, 3)
+	HIGH = (10, 5)
+
+print(MapQuality)
 
 @dataclass(frozen=True)
 class BoundingBox:
@@ -21,7 +23,7 @@ class BoundingBox:
 	def __getitem__(self, idx):
 		return (self.lat_min, self.lat_max, self.lon_min, self.lon_max)[idx]
 
-	def zoom(self, factor: float) -> "BoundingBox":
+	def scale(self, factor: float) -> "BoundingBox":
 		if factor <= 0:
 			raise ValueError("zoom factor must be > 0")
 
@@ -75,7 +77,7 @@ class OpenMeteoHelper:
 		return latitudes, longitudes
 
 	def get_rain_data(self, bounding_box: BoundingBox, quality: MapQuality, debug: bool = False):
-		cells, divisor, wait_time = quality.value
+		cells, divisor = quality.value
 
 		cache_session = DebugCachedSession(".cache")
 		retry_session = retry(cache_session, retries=5, backoff_factor=0.2)
@@ -117,7 +119,7 @@ class OpenMeteoHelper:
 						break
 					except openmeteo_requests.OpenMeteoRequestsError as e:
 						print(e)
-						print(f'waiting 10 extra seconds ({k+1})')
+						print(f'waiting 10 seconds ({k+1})')
 						sleep(10)
 
 				n_hours = len(response[0].Hourly().Variables(0).ValuesAsNumpy())
@@ -143,10 +145,6 @@ class OpenMeteoHelper:
 
 				if debug:
 					print(f"Section ({i},{j}) merged into indices x:{x_start}-{x_end}, y:{y_start}-{y_end}")
-				
-				if wait_time > 0 and not cache_session.used_cache:
-					print(f'waiting {wait_time} seconds to avoid limiter')
-					sleep(wait_time)
 
 		if debug:
 			print("Merged rain shape (hours, lat, lon):", merged_rain.shape)
