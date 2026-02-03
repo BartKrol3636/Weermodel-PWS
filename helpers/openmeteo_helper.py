@@ -1,15 +1,10 @@
-from enum import Enum
+from helpers.settings import MapQuality
 import openmeteo_requests
 import numpy as np
 import requests_cache
 from retry_requests import retry
 from time import sleep
 from dataclasses import dataclass
-
-class MapQuality(Enum): # (cells_per_section, section_divisor)
-	LOW = (10, 1)
-	MEDIUM = (10, 3)
-	HIGH = (10, 5)
 
 @dataclass(frozen=True)
 class BoundingBox:
@@ -75,7 +70,8 @@ class OpenMeteoHelper:
 		return latitudes, longitudes
 
 	def get_rain_data(self, bounding_box: BoundingBox, quality: MapQuality, debug: bool = False):
-		cells, divisor = quality.value
+		cells = 10
+		divisor = quality.value
 
 		cache_session = DebugCachedSession(".cache")
 		retry_session = retry(cache_session, retries=5, backoff_factor=0.2)

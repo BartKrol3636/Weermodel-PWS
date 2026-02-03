@@ -2,25 +2,15 @@ from PySide6.QtWidgets import QMainWindow, QLabel, QWidget, QComboBox, QVBoxLayo
 from PySide6.QtGui import QPixmap, QFont, QPainter, QColor
 from PySide6.QtCore import Qt
 import numpy as np
-from enum import Enum
 from helpers.openmeteo_helper import OpenMeteoHelper, MapQuality, BoundingBox
-
-
-class ForecastMode(Enum):
-    EIGEN = 0
-    KNMI = 1
-
-class MapSize(Enum):
-    KLEIN = 0
-    GROOT = 1
-
+from helpers.settings import ForecastMode, MapSize, MapQuality
 
 class WeermodelWindow(QMainWindow):
     def __init__(self, bounding_box: BoundingBox, map_paths: list[str, str] = ["assets/zwolle-kaart-klein.png", "assets/zwolle-kaart-groot.png"]):
         super().__init__()
 
         self.bounding_box = bounding_box
-        self.map_quality = MapQuality.MEDIUM
+        self.map_quality = MapQuality.MIDDEL
         self.forecast_mode = ForecastMode.KNMI
         self.map_size = MapSize.GROOT
         self.map_paths = map_paths
@@ -84,11 +74,11 @@ class WeermodelWindow(QMainWindow):
         right_controls_widget.setFixedSize(204, 854)
         right_controls_layout = QVBoxLayout(right_controls_widget)
 
-        quality_dropdown_label = QLabel("Regen Kwaliteit:")
-        quality_dropdown_label.setAlignment(Qt.AlignmentFlag.AlignTop)
+        quality_dropdown_label = QLabel("Kaart Kwaliteit:")
+        quality_dropdown_label.setToolTip("Resolutie van de vierkantjes van de regen\nMax kan ~30 min duren als de data nog niet gecached is")
         right_controls_layout.addWidget(quality_dropdown_label)
         quality_dropdown = QComboBox()
-        quality_dropdown.addItems([i.name for i in MapQuality])
+        quality_dropdown.addItems([i.name.capitalize() for i in MapQuality])
         quality_dropdown.setCurrentIndex(list(MapQuality).index(self.map_quality))
         quality_dropdown.currentIndexChanged.connect(self.change_quality)
         right_controls_layout.addWidget(quality_dropdown)
@@ -96,9 +86,10 @@ class WeermodelWindow(QMainWindow):
         right_controls_layout.addStretch(3)
 
         forecast_mode_dropdown_label = QLabel("Voorspellings manier:")
+        forecast_mode_dropdown_label.setToolTip("Eigen: Mijn zelf gemaakt weermodel\nKNMI: Het weermodel van KNMI")
         right_controls_layout.addWidget(forecast_mode_dropdown_label)
         forecast_mode_dropdown = QComboBox()
-        forecast_mode_dropdown.addItems([i.name for i in ForecastMode])
+        forecast_mode_dropdown.addItems([i.name if i.name == "KNMI" else i.name.capitalize() for i in ForecastMode])
         forecast_mode_dropdown.setCurrentIndex(list(ForecastMode).index(self.forecast_mode))
         forecast_mode_dropdown.currentIndexChanged.connect(self.change_forecast_mode)
         right_controls_layout.addWidget(forecast_mode_dropdown)
@@ -106,9 +97,10 @@ class WeermodelWindow(QMainWindow):
         right_controls_layout.addStretch(3)
 
         map_size_dropdown_label = QLabel("Kaart Grootte:")
+        map_size_dropdown_label.setToolTip("Grootte van de kaart.\nBij Klein is het verschil tussen kaart kwaliteit Hoog en Middel verwaarloosbaar.")
         right_controls_layout.addWidget(map_size_dropdown_label)
         map_size_dropdown = QComboBox()
-        map_size_dropdown.addItems([i.name for i in MapSize])
+        map_size_dropdown.addItems([i.name.capitalize() for i in MapSize])
         map_size_dropdown.setCurrentIndex(list(MapSize).index(self.map_size))
         map_size_dropdown.currentIndexChanged.connect(self.change_map_size)
         right_controls_layout.addWidget(map_size_dropdown)
