@@ -1,3 +1,6 @@
+import os
+os.chdir(os.path.dirname(os.path.abspath(__file__)))
+
 from PySide6.QtWidgets import QApplication
 from helpers.openmeteo_helper import BoundingBox
 from helpers.gui_helper import WeermodelWindow

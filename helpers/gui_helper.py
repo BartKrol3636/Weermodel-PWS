@@ -3,11 +3,7 @@ from PySide6.QtGui import QPixmap, QFont, QPainter, QColor
 from PySide6.QtCore import Qt
 import numpy as np
 from enum import Enum
-
-if __name__ == "__main__":
-    from openmeteo_helper import OpenMeteoHelper, MapQuality, BoundingBox
-else:
-    from helpers.openmeteo_helper import OpenMeteoHelper, MapQuality, BoundingBox
+from helpers.openmeteo_helper import OpenMeteoHelper, MapQuality, BoundingBox
 
 
 class ForecastMode(Enum):
@@ -218,14 +214,3 @@ class WeermodelWindow(QMainWindow):
         if self.t < self.max_hours - 1:
             self.t += 1
             self.draw_map()
-
-if __name__ == "__main__":
-    from PySide6.QtWidgets import QApplication
-    import sys
-
-    bounding_box = BoundingBox(52.67122222, 52.35077778, 6.35519444, 5.82716667)
-
-    app = QApplication(sys.argv)
-    window = WeermodelWindow(bounding_box)
-    window.show()
-    sys.exit(app.exec())

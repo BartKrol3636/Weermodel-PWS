@@ -11,8 +11,6 @@ class MapQuality(Enum): # (cells_per_section, section_divisor)
 	MEDIUM = (10, 3)
 	HIGH = (10, 5)
 
-print(MapQuality)
-
 @dataclass(frozen=True)
 class BoundingBox:
 	lat_min: float
@@ -150,12 +148,3 @@ class OpenMeteoHelper:
 			print("Merged rain shape (hours, lat, lon):", merged_rain.shape)
 
 		return merged_rain
-
-
-if __name__ == "__main__":
-	om_helper = OpenMeteoHelper()
-	merged_data = om_helper.get_rain_data(
-		BoundingBox(52.67122222, 52.35077778, 6.35519444, 5.82716667),
-		quality=MapQuality.MEDIUM,
-		debug=True
-	)
