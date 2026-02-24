@@ -75,7 +75,7 @@ class WeermodelWindow(QMainWindow):
         right_controls_layout = QVBoxLayout(right_controls_widget)
 
         quality_dropdown_label = QLabel("Kaart Kwaliteit:")
-        quality_dropdown_label.setToolTip("Resolutie van de vierkantjes van de regen\nMax kan ~30 min duren als de data nog niet gecached is")
+        quality_dropdown_label.setToolTip("Resolutie van de vierkantjes van de regen\nMaximaal kan ~30 min duren als de data nog niet gecached is")
         right_controls_layout.addWidget(quality_dropdown_label)
         quality_dropdown = QComboBox()
         quality_dropdown.addItems([i.name.capitalize() for i in MapQuality])

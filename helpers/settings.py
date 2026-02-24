@@ -4,7 +4,7 @@ class MapQuality(Enum):
     LAAG = 1
     MIDDEL = 3
     HOOG = 5
-    MAX = 15
+    MAXIMAAL = 15
 
 class ForecastMode(Enum):
     EIGEN = 0
