@@ -15,6 +15,11 @@ class BoundingBox:
 
 	def __getitem__(self, idx):
 		return (self.lat_min, self.lat_max, self.lon_min, self.lon_max)[idx]
+	
+	def get_centre(self) -> tuple[float, float]:
+		lat_center = (self.lat_min + self.lat_max) / 2
+		lon_center = (self.lon_min + self.lon_max) / 2
+		return lat_center, lon_center
 
 	def scale(self, factor: float) -> "BoundingBox":
 		if factor <= 0:
@@ -144,3 +149,40 @@ class OpenMeteoHelper:
 			print("Merged rain shape (hours, lat, lon):", merged_rain.shape)
 
 		return merged_rain
+	
+	def get_wind_direction(self, bounding_box: BoundingBox):
+		cache_session = DebugCachedSession(".cache")
+		retry_session = retry(cache_session, retries=5, backoff_factor=0.2)
+		openmeteo = openmeteo_requests.Client(session=retry_session)
+
+		lat, lon = bounding_box.get_centre()
+
+		url = "https://api.open-meteo.com/v1/forecast"
+		# url = "https://historical-forecast-api.open-meteo.com/v1/forecast"
+		params = {
+			"latitude": lat,
+			"longitude": lon,
+			"hourly": "wind_direction_180m",
+			"start_date": "2025-12-07",
+			"end_date": "2025-12-07",
+		}
+		responses = openmeteo.weather_api(url, params=params)
+		response = responses[0]
+
+		hourly = response.Hourly()
+		hourly_wind_direction_180m = hourly.Variables(0).ValuesAsNumpy()
+
+		import pandas as pd
+		hourly_data = {"date": pd.date_range(
+			start = pd.to_datetime(hourly.Time(), unit = "s", utc = True),
+			end =  pd.to_datetime(hourly.TimeEnd(), unit = "s", utc = True),
+			freq = pd.Timedelta(seconds = hourly.Interval()),
+			inclusive = "left"
+		)}
+
+		hourly_data["wind_direction_180m"] = hourly_wind_direction_180m
+
+		hourly_dataframe = pd.DataFrame(data = hourly_data)
+		print("\nHourly data\n", hourly_dataframe)
+
+		return 0

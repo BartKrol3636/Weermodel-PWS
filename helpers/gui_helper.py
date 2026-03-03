@@ -4,6 +4,7 @@ from PySide6.QtCore import Qt
 import numpy as np
 from helpers.openmeteo_helper import OpenMeteoHelper, MapQuality, BoundingBox
 from helpers.settings import ForecastMode, MapSize, MapQuality
+from helpers.forecast_helper import get_forecast
 
 class WeermodelWindow(QMainWindow):
     def __init__(self, bounding_box: BoundingBox, map_paths: list[str, str] = ["assets/zwolle-kaart-klein.png", "assets/zwolle-kaart-groot.png"]):
@@ -136,8 +137,8 @@ class WeermodelWindow(QMainWindow):
         bounding_box = self.bounding_box if self.map_size == MapSize.KLEIN else self.bounding_box.scale(4)
         self.rain_knmi_forecast_data = om_helper.get_rain_data(bounding_box, quality=self.map_quality, debug=False)
 
-        self.rain_eigen_forecast_data = self.rain_knmi_forecast_data[0]
-        self.rain_eigen_forecast_data = np.repeat(self.rain_eigen_forecast_data[np.newaxis, :, :], 24, axis=0)
+        wind_direction = om_helper.get_wind_direction(bounding_box)
+        self.rain_eigen_forecast_data = get_forecast(self.rain_knmi_forecast_data[0], wind_direction)
 
         self.max_hours, self.height, self.width = self.rain_knmi_forecast_data.shape if self.forecast_mode == ForecastMode.KNMI else self.rain_eigen_forecast_data.shape
 
