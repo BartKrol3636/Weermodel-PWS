@@ -150,7 +150,8 @@ class WeermodelWindow(QMainWindow):
             (254, 22, 0),
             (192, 28, 196)
         ]
-        thresholds = [2, 5, 10, 100, 200]
+        # thresholds = [2, 5, 10, 100, 200]
+        thresholds = [0.5, 3, 10, 20, 100]
 
         base_alpha = 191 # 75%
 
