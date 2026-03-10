@@ -107,8 +107,8 @@ class OpenMeteoHelper:
 					"longitude": [lon for lat, lon in coords],
 					"hourly": "precipitation",
 					"models": "knmi_seamless",
-					"start_date": "2025-12-07",
-					"end_date": "2025-12-07",
+					"start_date": "2026-02-22",
+					"end_date": "2026-02-22",
 				}
 				
 				for k in range(0, 12):
@@ -158,13 +158,12 @@ class OpenMeteoHelper:
 		lat, lon = bounding_box.get_centre()
 
 		url = "https://api.open-meteo.com/v1/forecast"
-		# url = "https://historical-forecast-api.open-meteo.com/v1/forecast"
 		params = {
 			"latitude": lat,
 			"longitude": lon,
 			"hourly": "wind_direction_180m",
-			"start_date": "2025-12-07",
-			"end_date": "2025-12-07",
+			"start_date": "2026-02-03",
+			"end_date": "2026-02-03",
 		}
 		responses = openmeteo.weather_api(url, params=params)
 		response = responses[0]
@@ -172,17 +171,8 @@ class OpenMeteoHelper:
 		hourly = response.Hourly()
 		hourly_wind_direction_180m = hourly.Variables(0).ValuesAsNumpy()
 
-		import pandas as pd
-		hourly_data = {"date": pd.date_range(
-			start = pd.to_datetime(hourly.Time(), unit = "s", utc = True),
-			end =  pd.to_datetime(hourly.TimeEnd(), unit = "s", utc = True),
-			freq = pd.Timedelta(seconds = hourly.Interval()),
-			inclusive = "left"
-		)}
+		wind_direction_list = hourly_wind_direction_180m.tolist()
 
-		hourly_data["wind_direction_180m"] = hourly_wind_direction_180m
+		print("Hourly wind directions:", wind_direction_list)
 
-		hourly_dataframe = pd.DataFrame(data = hourly_data)
-		print("\nHourly data\n", hourly_dataframe)
-
-		return 0
+		return wind_direction_list
